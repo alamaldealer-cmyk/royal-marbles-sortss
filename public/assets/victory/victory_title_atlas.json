@@ -1,0 +1,53 @@
+{
+  "image": "victory_title_spritesheet.png",
+  "cell": {
+    "w": 720,
+    "h": 240
+  },
+  "columns": 4,
+  "rows": 7,
+  "frame_x": "x = (i % columns) * w ; y = floor(i / columns) * h",
+  "pivot": "center (0.5,0.5)",
+  "animations": {
+    "pop_in": {
+      "frames": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13
+      ],
+      "fps": 24,
+      "loop": false,
+      "use": "title enters: letters drop in one by one with bounce"
+    },
+    "idle": {
+      "frames": [
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25
+      ],
+      "fps": 12,
+      "loop": true,
+      "use": "after pop_in: letters wave + light sweep"
+    }
+  }
+}

@@ -1,0 +1,126 @@
+@import "tailwindcss";
+
+html,
+body,
+#root {
+  width: 100%;
+  height: 100%;
+  min-height: 100%;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  background-color: #008AE6;
+  touch-action: none;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/* ==========================================
+   LEVEL 1 TUTORIAL HAND ANIMATION KEYFRAMES
+   ========================================== */
+:root {
+  --tutorial-dur: 3.2s;
+}
+
+.tutorial-target {
+  position: absolute;
+  width: 220px;
+  height: 212px;
+  pointer-events: none;
+  z-index: 100;
+}
+
+.tutorial-hand {
+  position: absolute;
+  display: block !important;
+  width: 220px !important;
+  min-width: 220px !important;
+  max-width: none !important;
+  height: 212px !important;
+  min-height: 212px !important;
+  max-height: none !important;
+  object-fit: contain;
+  left: -15px;
+  top: -13.5px;
+  transform-origin: 15px 13.5px;
+  animation: tutorial-hand-anim var(--tutorial-dur) infinite ease-in-out;
+  pointer-events: none;
+  filter: drop-shadow(0 10px 18px rgba(0, 0, 0, 0.45));
+}
+
+@keyframes tutorial-hand-anim {
+  0% {
+    transform: translate(65px, 75px);
+    opacity: 0;
+  }
+  10% {
+    transform: translate(65px, 75px);
+    opacity: 1;
+  }
+  26% {
+    transform: translate(0, 0) scale(1);
+    opacity: 1;
+  }
+  34% {
+    transform: translate(0, 0) scale(1);
+    opacity: 1;
+  }
+  40% {
+    transform: translate(2px, 2px) scale(0.84) rotate(-3deg);
+    opacity: 1;
+  } /* press */
+  50% {
+    transform: translate(2px, 2px) scale(0.84) rotate(-3deg);
+    opacity: 1;
+  }
+  58% {
+    transform: translate(0, 0) scale(1);
+    opacity: 1;
+  } /* release */
+  72% {
+    transform: translate(0, 0) scale(1);
+    opacity: 1;
+  }
+  90% {
+    transform: translate(65px, 75px);
+    opacity: 0;
+  }
+  100% {
+    transform: translate(65px, 75px);
+    opacity: 0;
+  }
+}
+
+.tutorial-ring {
+  position: absolute;
+  left: -45px;
+  top: -45px;
+  width: 90px;
+  height: 90px;
+  border-radius: 50%;
+  border: 6px solid #ffffff;
+  opacity: 0;
+  animation: tutorial-ring-anim var(--tutorial-dur) infinite ease-in-out;
+  pointer-events: none;
+  filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.8));
+}
+
+@keyframes tutorial-ring-anim {
+  0%, 38% {
+    opacity: 0;
+    transform: scale(0.3);
+  }
+  40% {
+    opacity: 0.95;
+    transform: scale(0.3);
+  }
+  62% {
+    opacity: 0;
+    transform: scale(1.7);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.7);
+  }
+}
