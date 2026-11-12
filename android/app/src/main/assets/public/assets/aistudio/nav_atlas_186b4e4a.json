@@ -1,0 +1,90 @@
+{
+  "image": "nav_spritesheet.png",
+  "frame_size": [
+    943,
+    288
+  ],
+  "note": "Frames are full-width nav strips with transparent area above the bar. Place each frame at the bottom of the screen: reference screen is 943x1668, frame top = y 1380. Scale uniformly for other resolutions.",
+  "frames": {
+    "home": {
+      "x": 0,
+      "y": 0,
+      "w": 943,
+      "h": 288
+    },
+    "shop": {
+      "x": 0,
+      "y": 288,
+      "w": 943,
+      "h": 288
+    },
+    "settings": {
+      "x": 0,
+      "y": 576,
+      "w": 943,
+      "h": 288
+    }
+  },
+  "hit_areas": {
+    "home": {
+      "shop": {
+        "x": 58,
+        "y": 82,
+        "w": 186,
+        "h": 164
+      },
+      "home": {
+        "x": 295,
+        "y": 35,
+        "w": 353,
+        "h": 211
+      },
+      "settings": {
+        "x": 700,
+        "y": 82,
+        "w": 186,
+        "h": 164
+      }
+    },
+    "shop": {
+      "shop": {
+        "x": 58,
+        "y": 35,
+        "w": 353,
+        "h": 211
+      },
+      "home": {
+        "x": 464,
+        "y": 82,
+        "w": 186,
+        "h": 164
+      },
+      "settings": {
+        "x": 700,
+        "y": 82,
+        "w": 186,
+        "h": 164
+      }
+    },
+    "settings": {
+      "shop": {
+        "x": 58,
+        "y": 82,
+        "w": 186,
+        "h": 164
+      },
+      "home": {
+        "x": 292,
+        "y": 82,
+        "w": 186,
+        "h": 164
+      },
+      "settings": {
+        "x": 528,
+        "y": 35,
+        "w": 353,
+        "h": 211
+      }
+    }
+  }
+}

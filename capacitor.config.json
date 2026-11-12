@@ -1,0 +1,11 @@
+{
+  "appId": "com.marblesort.game",
+  "appName": "Marble Sort",
+  "webDir": "dist",
+  "server": {
+    "androidScheme": "https"
+  },
+  "android": {
+    "allowMixedContent": true
+  }
+}

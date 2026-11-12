@@ -25,8 +25,8 @@ body,
 
 .tutorial-target {
   position: absolute;
-  width: 220px;
-  height: 212px;
+  width: 90px;
+  height: 86px;
   pointer-events: none;
   z-index: 100;
 }
@@ -34,28 +34,28 @@ body,
 .tutorial-hand {
   position: absolute;
   display: block !important;
-  width: 220px !important;
-  min-width: 220px !important;
+  width: 90px !important;
+  min-width: 90px !important;
   max-width: none !important;
-  height: 212px !important;
-  min-height: 212px !important;
+  height: 86.7px !important;
+  min-height: 86.7px !important;
   max-height: none !important;
   object-fit: contain;
-  left: -15px;
-  top: -13.5px;
-  transform-origin: 15px 13.5px;
+  left: -6.1px;
+  top: -5.5px;
+  transform-origin: 6.1px 5.5px;
   animation: tutorial-hand-anim var(--tutorial-dur) infinite ease-in-out;
   pointer-events: none;
-  filter: drop-shadow(0 10px 18px rgba(0, 0, 0, 0.45));
+  filter: drop-shadow(0 5px 12px rgba(0, 0, 0, 0.45));
 }
 
 @keyframes tutorial-hand-anim {
   0% {
-    transform: translate(65px, 75px);
+    transform: translate(45px, 50px);
     opacity: 0;
   }
   10% {
-    transform: translate(65px, 75px);
+    transform: translate(45px, 50px);
     opacity: 1;
   }
   26% {
@@ -67,11 +67,11 @@ body,
     opacity: 1;
   }
   40% {
-    transform: translate(2px, 2px) scale(0.84) rotate(-3deg);
+    transform: translate(1px, 1px) scale(0.86) rotate(-3deg);
     opacity: 1;
   } /* press */
   50% {
-    transform: translate(2px, 2px) scale(0.84) rotate(-3deg);
+    transform: translate(1px, 1px) scale(0.86) rotate(-3deg);
     opacity: 1;
   }
   58% {
@@ -83,27 +83,27 @@ body,
     opacity: 1;
   }
   90% {
-    transform: translate(65px, 75px);
+    transform: translate(45px, 50px);
     opacity: 0;
   }
   100% {
-    transform: translate(65px, 75px);
+    transform: translate(45px, 50px);
     opacity: 0;
   }
 }
 
 .tutorial-ring {
   position: absolute;
-  left: -45px;
-  top: -45px;
-  width: 90px;
-  height: 90px;
+  left: -22px;
+  top: -22px;
+  width: 44px;
+  height: 44px;
   border-radius: 50%;
-  border: 6px solid #ffffff;
+  border: 3.5px solid #ffffff;
   opacity: 0;
   animation: tutorial-ring-anim var(--tutorial-dur) infinite ease-in-out;
   pointer-events: none;
-  filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.8));
+  filter: drop-shadow(0 0 6px rgba(255, 255, 255, 0.8));
 }
 
 @keyframes tutorial-ring-anim {
@@ -117,10 +117,10 @@ body,
   }
   62% {
     opacity: 0;
-    transform: scale(1.7);
+    transform: scale(1.6);
   }
   100% {
     opacity: 0;
-    transform: scale(1.7);
+    transform: scale(1.6);
   }
 }

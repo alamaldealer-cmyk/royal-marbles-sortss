@@ -22,6 +22,8 @@ export interface FunnelBoundarySegment {
 
 export class FunnelPhysics {
   public balls: FunnelBall[] = [];
+  public onImpact?: () => void;
+  public onGrumble?: () => void;
   private nextId = 1;
   private walls: FunnelBoundarySegment[] = [];
 
@@ -70,20 +72,27 @@ export class FunnelPhysics {
     vx: number = 0,
     vy: number = -160
   ): FunnelBall {
+    const id = this.nextId++;
+    const personalities: ('sleepy' | 'angry' | 'cheerful')[] = ['cheerful', 'angry', 'sleepy'];
     const ball: FunnelBall = {
-      id: this.nextId++,
+      id,
       color,
       x,
       y,
       vx,
       vy,
       radius: BALL_RADIUS_FUNNEL,
+      spawnTime: performance.now(),
+      impactTimer: 0,
+      waitingTime: 0,
+      personality: personalities[id % 3],
     };
     this.balls.push(ball);
     return ball;
   }
 
   spawnBurst(centerX: number, centerY: number, color: MarbleColor, count: number) {
+    const personalities: ('sleepy' | 'angry' | 'cheerful')[] = ['cheerful', 'angry', 'sleepy'];
     for (let i = 0; i < count; i++) {
       // Delay / slight staggered position within 8px radius
       const angle = Math.random() * Math.PI * 2;
@@ -97,14 +106,19 @@ export class FunnelPhysics {
       const vx = Math.cos(spreadAngle) * speed * (Math.random() > 0.5 ? 1 : -1);
       const vy = Math.sin(spreadAngle) * speed + 30; // downward push
 
+      const id = this.nextId++;
       this.balls.push({
-        id: this.nextId++,
+        id,
         color,
         x: px,
         y: py,
         vx,
         vy,
         radius: BALL_RADIUS_FUNNEL,
+        spawnTime: performance.now(),
+        impactTimer: 0,
+        waitingTime: 0,
+        personality: personalities[id % 3],
       });
     }
   }
@@ -158,6 +172,10 @@ export class FunnelPhysics {
             // Reflect velocity with restitution and friction
             const velNormal = b.vx * wall.nx + b.vy * wall.ny;
             if (velNormal < 0) {
+              if (Math.abs(velNormal) > 30) {
+                b.impactTimer = 0.28;
+                this.onImpact?.();
+              }
               b.vx -= (1 + restitution) * velNormal * wall.nx;
               b.vy -= (1 + restitution) * velNormal * wall.ny;
               b.vx *= (1 - friction);
@@ -204,6 +222,11 @@ export class FunnelPhysics {
             const normalVel = dvx * nx + dvy * ny;
 
             if (normalVel < 0) {
+              if (normalVel < -45) {
+                b1.impactTimer = 0.22;
+                b2.impactTimer = 0.22;
+                this.onImpact?.();
+              }
               const impulse = -(1 + restitution) * normalVel * 0.5;
               b1.vx -= nx * impulse;
               b1.vy -= ny * impulse;
@@ -212,6 +235,22 @@ export class FunnelPhysics {
             }
           }
         }
+      }
+    }
+
+    // Update fluffy facial timers and waiting states
+    for (const b of this.balls) {
+      if (b.impactTimer && b.impactTimer > 0) {
+        b.impactTimer -= dt;
+      }
+      const speed = Math.hypot(b.vx, b.vy);
+      if (b.y > 360 && speed < 40) {
+        b.waitingTime = (b.waitingTime || 0) + dt;
+        if (b.waitingTime > 2.5 && b.personality === 'angry') {
+          this.onGrumble?.();
+        }
+      } else if (b.y < 340 || speed > 85) {
+        b.waitingTime = 0;
       }
     }
 

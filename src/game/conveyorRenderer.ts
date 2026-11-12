@@ -19,6 +19,7 @@ import {
   getBeltCoordinates,
 } from './beltPath';
 import { BeltBall, MarbleColor } from './types';
+import { fluffyRenderer } from './fluffyRenderer';
 
 // Path tangent angle at distance s
 export function getBeltTangentAngle(rawS: number): number {
@@ -85,7 +86,7 @@ export class ConveyorBeltRenderer {
     this.renderDividerRail(ctx);
 
     // 5. 30 Dark Dusty Purple Circular Socket Indentations & Glossy 3D Marbles
-    this.renderMovingBallSockets(ctx, scrollDistance, balls, ballImages);
+    this.renderMovingBallSockets(ctx, scrollDistance, balls, currentTime, ballImages);
 
     // 6. Subtle Directional Flow Chevrons
     this.renderFlowChevrons(ctx, scrollDistance);
@@ -252,6 +253,7 @@ export class ConveyorBeltRenderer {
     ctx: CanvasRenderingContext2D,
     scrollDistance: number,
     balls: BeltBall[],
+    currentTime: number = 0,
     ballImages?: Record<string, HTMLImageElement>
   ) {
     ctx.save();
@@ -303,16 +305,8 @@ export class ConveyorBeltRenderer {
       // (B) IF A BALL IS IN THIS SLOT, DRAW IT AT EXACT (0, 0) CENTER!
       const ball = ballBySlot.get(i);
       if (ball) {
-        const sprite = ballImages ? ballImages[ball.color] : null;
-        if (sprite && sprite.complete && sprite.naturalWidth > 0) {
-          ctx.save();
-          if (ball.scale !== 1.0) ctx.scale(ball.scale, ball.scale);
-          const size = BALL_RADIUS_BELT * 2.4;
-          ctx.drawImage(sprite, -size / 2, -size / 2, size, size);
-          ctx.restore();
-        } else {
-          this.drawGlossyMarble(ctx, 0, 0, BALL_RADIUS_BELT, ball.color, ball.scale);
-        }
+        const expr = fluffyRenderer.getBeltBallExpression(ball, currentTime || performance.now());
+        fluffyRenderer.drawFluffy(ctx, 0, 0, BALL_RADIUS_BELT, ball.color, expr, ball.scale, ball.scale);
       }
 
       ctx.restore();

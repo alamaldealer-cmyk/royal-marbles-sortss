@@ -64,6 +64,12 @@ export interface FunnelBall {
   vx: number;
   vy: number;
   radius: number;
+  spawnTime?: number;
+  impactTimer?: number;
+  waitingTime?: number;
+  personality?: 'sleepy' | 'angry' | 'cheerful';
+  squishX?: number;
+  squishY?: number;
 }
 
 export interface DroppingBall {

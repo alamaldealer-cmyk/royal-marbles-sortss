@@ -65,11 +65,14 @@ import {
   BeltBall,
   BrickColumn,
   DroppingBall,
+  FunnelBall,
   GridCell,
   LevelData,
   MarbleColor,
   Particle,
 } from '../game/types';
+import { fluffyRenderer, FluffyExpression } from '../game/fluffyRenderer';
+import fluffiesSpritesheetSrc from '../assets/images/fluffies_spritesheet.png';
 import bgImageSrc from '../assets/images/radiant_cyan_blue_gradient.png';
 import cyberFrameSrc from '../assets/images/cyber_game_frame.png';
 import coinRackImgSrc from '../assets/images/coin_rack.png';
@@ -363,13 +366,24 @@ export const GameBoard: React.FC<GameBoardProps> = ({
 
   useEffect(() => {
     let loadedCount = 0;
-    const totalToLoad = 79;
+    const totalToLoad = 80;
     const checkLoaded = () => {
       loadedCount++;
       if (loadedCount >= totalToLoad) {
         setImagesLoaded(true);
       }
     };
+
+    const fluffyImg = new Image();
+    fluffyImg.onload = () => {
+      fluffyRenderer.setSpriteSheet(fluffyImg);
+      checkLoaded();
+    };
+    fluffyImg.src = fluffiesSpritesheetSrc;
+    if (fluffyImg.complete) {
+      fluffyRenderer.setSpriteSheet(fluffyImg);
+      checkLoaded();
+    }
 
     const bSpr = new Image();
     bSpr.onload = checkLoaded;
@@ -616,7 +630,10 @@ export const GameBoard: React.FC<GameBoardProps> = ({
       lightPulseTimer: 0,
     }));
 
-    physicsRef.current = new FunnelPhysics();
+    const phys = new FunnelPhysics();
+    phys.onImpact = () => sounds.playFluffySquish();
+    phys.onGrumble = () => sounds.playFluffyGrumble();
+    physicsRef.current = phys;
     beltBallsRef.current = [];
     droppingBallsRef.current = [];
     particlesRef.current = [];
@@ -1070,9 +1087,11 @@ export const GameBoard: React.FC<GameBoardProps> = ({
             if (match) {
               matchedBeltBallIds.add(ball.id);
               const col = columnsRef.current[match.matchedColIndex];
-              col.lightPulseTimer = Math.max(col.lightPulseTimer || 0, 0.45);
               const targetX = col.x;
-              const targetY = BALTI_SOCKET_Y;
+              const holeIdx = Math.max(0, Math.min(2, match.targetHoleIndex));
+              const holeOffsets = [0.236, 0.132, 0.038];
+              const baltiH = 60;
+              const targetY = 551 + holeOffsets[holeIdx] * baltiH;
 
               droppingBallsRef.current.push({
                 id: nextDropIdRef.current++,
@@ -1112,15 +1131,18 @@ export const GameBoard: React.FC<GameBoardProps> = ({
                 topBrick.animState = 'hit_1';
                 topBrick.animTimer = 0;
                 sounds.playDropHole(0);
+                sounds.playFluffyCheer(0);
               } else if (topBrick.filled === 2) {
                 topBrick.animState = 'hit_2';
                 topBrick.animTimer = 0;
                 sounds.playDropHole(1);
+                sounds.playFluffyCheer(1);
               } else if (topBrick.filled >= 3) {
                 topBrick.animState = 'hit_3';
                 topBrick.animTimer = 0;
                 col.lightPulseTimer = 1.0;
                 sounds.playDropHole(2);
+                sounds.playFluffyCheer(2);
               }
             }
 
@@ -1257,8 +1279,8 @@ export const GameBoard: React.FC<GameBoardProps> = ({
       // Conveyor belt renders the rotating sprockets, moving link treads, and 30 sockets with marbles
       conveyorRenderer.render(ctx, beltScrollDistanceRef.current, currentTime, beltBallsRef.current, false, ballImgsRef.current);
       renderMachineRailingAndBaltis(ctx, columnsRef.current, dt);
-      renderGridBlocks(ctx, gridRef.current, dt);
-      renderFunnelBalls(ctx, physicsRef.current.balls);
+      renderGridBlocks(ctx, gridRef.current, dt, currentTime);
+      renderFunnelBalls(ctx, physicsRef.current.balls, currentTime);
       renderDroppingBalls(ctx, droppingBallsRef.current);
       renderParticles(ctx, particlesRef.current);
       renderHint(ctx);
@@ -1488,9 +1510,9 @@ export const GameBoard: React.FC<GameBoardProps> = ({
     // 1. Draw the 4 Baltis (Buckets) via animated Spritesheet
     const sheetImg = bucketSpritesheetRef.current;
     const hasSheet = sheetImg && sheetImg.complete && sheetImg.naturalWidth > 0;
-    const cellCenterY = 552;
-    const baltiW = 50;
-    const baltiH = 50;
+    const cellCenterY = 551;
+    const baltiW = 60;
+    const baltiH = 60;
 
     columns.forEach((col) => {
       const colX = col.x;
@@ -1501,7 +1523,7 @@ export const GameBoard: React.FC<GameBoardProps> = ({
       if (count === 0) {
         ctx.fillStyle = 'rgba(46, 181, 90, 0.2)';
         ctx.beginPath();
-        ctx.arc(colX, cellCenterY, 12, 0, Math.PI * 2);
+        ctx.arc(colX, cellCenterY, 13, 0, Math.PI * 2);
         ctx.fill();
 
         ctx.strokeStyle = '#2EB55A';
@@ -1525,9 +1547,9 @@ export const GameBoard: React.FC<GameBoardProps> = ({
           queuedBrick.color,
           0, // Frame 0: queued dim bucket
           colX,
-          cellCenterY - 9, // Slightly recessed in queue slot
-          42,
-          42,
+          cellCenterY - 11, // Slightly recessed in queue slot
+          50,
+          50,
           0.72
         );
       }
@@ -1547,6 +1569,28 @@ export const GameBoard: React.FC<GameBoardProps> = ({
           baltiH,
           1.0
         );
+
+        // Draw cute animated Fluffies inside the filled holes so they are clearly visible and adjusted!
+        if (brick.filled > 0 && brick.animState !== 'vanish') {
+          // Ball hole Y offsets in bucket:
+          // Hole 0 (bottom): +0.236 * baltiH
+          // Hole 1 (middle): +0.132 * baltiH
+          // Hole 2 (top):    +0.038 * baltiH
+          const holeOffsets = [0.236, 0.132, 0.038];
+          const ballRadius = 9.0; // Clear, highly visible Fluffy face in bucket socket
+          const filledCount = Math.min(3, brick.filled);
+          for (let h = 0; h < filledCount; h++) {
+            const by = cellCenterY + holeOffsets[h] * baltiH;
+            fluffyRenderer.drawFluffy(
+              ctx,
+              colX,
+              by,
+              ballRadius,
+              brick.color,
+              filledCount === 3 ? FluffyExpression.HAPPY_OPEN : FluffyExpression.CUTE_IDLE
+            );
+          }
+        }
       } else {
         // Fallback if spritesheet is loading
         const railBucketImg = railBucketImgsRef.current[brick.color];
@@ -1563,7 +1607,7 @@ export const GameBoard: React.FC<GameBoardProps> = ({
     });
 
     // 2. Remaining Queue Badge Indicator ("New balti counter")
-    const badgeY = cellCenterY + 26; // Below the bucket
+    const badgeY = cellCenterY + 31; // Positioned cleanly below the enlarged bucket
     const badgeW = 32;
     const badgeH = 12;
 
@@ -1617,7 +1661,12 @@ export const GameBoard: React.FC<GameBoardProps> = ({
     ctx.restore();
   };
 
-  const renderGridBlocks = (ctx: CanvasRenderingContext2D, grid: GridCell[][], dt: number) => {
+  const renderGridBlocks = (
+    ctx: CanvasRenderingContext2D,
+    grid: GridCell[][],
+    dt: number,
+    currentTime: number = 0
+  ) => {
     ctx.save();
 
     for (let r = 0; r < GRID_ROWS; r++) {
@@ -1831,7 +1880,7 @@ export const GameBoard: React.FC<GameBoardProps> = ({
 
             const colOffsets = [-8.1, 0, 8.1];
             const rowOffsets = [-7.5, 0, 7.5];
-            const ballR = 5.2;
+            const ballR = 4.8;
 
             // Sequential machine-gun popping: 1, 2, 3 ... 9 balls hop upward into the air!
             const targetSpawns = Math.min(9, Math.floor(cell.animTimer / popInterval));
@@ -1849,10 +1898,8 @@ export const GameBoard: React.FC<GameBoardProps> = ({
               physicsRef.current.spawnPoppingBall(ballX, ballY, cell.color, vx, vy);
               cell.spawnedCount = (cell.spawnedCount || 0) + 1;
 
-              // Crisp rhythmic pop sound as balls launch
-              if (idx % 3 === 0) {
-                sounds.playTap();
-              }
+              // Cute Fluffy upward vocal chirp as balls leap into the air
+              sounds.playFluffyLaunch(idx);
             }
 
             // Draw open tray with shrink feedback
@@ -1870,7 +1917,8 @@ export const GameBoard: React.FC<GameBoardProps> = ({
               for (let i = spawned; i < 9; i++) {
                 const rIdx = Math.floor(i / 3);
                 const cIdx = i % 3;
-                drawGlossyBall(ctx, colOffsets[cIdx], rowOffsets[rIdx], ballR, cell.color);
+                const expr = fluffyRenderer.getCrateBallExpression(i + r * 6 + c, currentTime);
+                fluffyRenderer.drawFluffy(ctx, colOffsets[cIdx], rowOffsets[rIdx], ballR, cell.color, expr, 0.92, 0.92);
               }
             } else {
               // Fallback
@@ -1919,26 +1967,28 @@ export const GameBoard: React.FC<GameBoardProps> = ({
 
             const colOffsets = [-8.1, 0, 8.1];
             const rowOffsets = [-7.5, 0, 7.5];
-            const ballR = 5.2;
+            const ballR = 4.8;
 
-            // 1. Draw full tray underneath with its 9 color-matched distinct balls
-            const fullImg = crateFullImgsRef.current[cell.color];
-            if (fullImg && fullImg.complete && fullImg.naturalWidth > 0) {
-              ctx.drawImage(fullImg, -drawW / 2, -drawH / 2, drawW, drawH);
+            // 1. Draw open tray underneath with its 9 color-matched distinct Fluffies
+            const openImg = crateOpenImgsRef.current[cell.color];
+            if (openImg && openImg.complete && openImg.naturalWidth > 0) {
+              ctx.drawImage(openImg, -drawW / 2, -drawH / 2, drawW, drawH);
             } else {
-              const openImg = crateOpenImgsRef.current[cell.color];
-              if (openImg && openImg.complete && openImg.naturalWidth > 0) {
-                ctx.drawImage(openImg, -drawW / 2, -drawH / 2, drawW, drawH);
+              const fullImg = crateFullImgsRef.current[cell.color];
+              if (fullImg && fullImg.complete && fullImg.naturalWidth > 0) {
+                ctx.drawImage(fullImg, -drawW / 2, -drawH / 2, drawW, drawH);
               } else {
                 ctx.fillStyle = config.hex;
                 ctx.beginPath();
                 ctx.roundRect(-drawW / 2, -drawH / 2, drawW, drawH, 7);
                 ctx.fill();
               }
-              for (let rIdx = 0; rIdx < 3; rIdx++) {
-                for (let cIdx = 0; cIdx < 3; cIdx++) {
-                  drawGlossyBall(ctx, colOffsets[cIdx], rowOffsets[rIdx], ballR, cell.color);
-                }
+            }
+            for (let rIdx = 0; rIdx < 3; rIdx++) {
+              for (let cIdx = 0; cIdx < 3; cIdx++) {
+                const idx = rIdx * 3 + cIdx;
+                const expr = fluffyRenderer.getCrateBallExpression(idx + r * 6 + c, currentTime);
+                fluffyRenderer.drawFluffy(ctx, colOffsets[cIdx], rowOffsets[rIdx], ballR, cell.color, expr, 0.92, 0.92);
               }
             }
 
@@ -1974,25 +2024,29 @@ export const GameBoard: React.FC<GameBoardProps> = ({
             // Idle / active / popBounced state: render full tray with 9 distinct separated balls!
             const colOffsets = [-8.1, 0, 8.1];
             const rowOffsets = [-7.5, 0, 7.5];
-            const ballR = 5.2;
+            const ballR = 4.8;
 
-            const fullImg = crateFullImgsRef.current[cell.color];
-            if (fullImg && fullImg.complete && fullImg.naturalWidth > 0) {
-              ctx.drawImage(fullImg, -drawW / 2, -drawH / 2, drawW, drawH);
+            const openImg = crateOpenImgsRef.current[cell.color];
+            if (openImg && openImg.complete && openImg.naturalWidth > 0) {
+              ctx.drawImage(openImg, -drawW / 2, -drawH / 2, drawW, drawH);
             } else {
-              const openImg = crateOpenImgsRef.current[cell.color];
-              if (openImg && openImg.complete && openImg.naturalWidth > 0) {
-                ctx.drawImage(openImg, -drawW / 2, -drawH / 2, drawW, drawH);
+              const fullImg = crateFullImgsRef.current[cell.color];
+              if (fullImg && fullImg.complete && fullImg.naturalWidth > 0) {
+                ctx.drawImage(fullImg, -drawW / 2, -drawH / 2, drawW, drawH);
               } else {
                 ctx.fillStyle = config.hex;
                 ctx.beginPath();
                 ctx.roundRect(-drawW / 2, -drawH / 2, drawW, drawH, 7);
                 ctx.fill();
               }
-              for (let rIdx = 0; rIdx < 3; rIdx++) {
-                for (let cIdx = 0; cIdx < 3; cIdx++) {
-                  drawGlossyBall(ctx, colOffsets[cIdx], rowOffsets[rIdx], ballR, cell.color);
-                }
+            }
+
+            // Draw 9 cute Fluffies inside the tray!
+            for (let rIdx = 0; rIdx < 3; rIdx++) {
+              for (let cIdx = 0; cIdx < 3; cIdx++) {
+                const idx = rIdx * 3 + cIdx;
+                const expr = fluffyRenderer.getCrateBallExpression(idx + r * 6 + c, currentTime);
+                fluffyRenderer.drawFluffy(ctx, colOffsets[cIdx], rowOffsets[rIdx], ballR, cell.color, expr, 0.92, 0.92);
               }
             }
 
@@ -2026,62 +2080,74 @@ export const GameBoard: React.FC<GameBoardProps> = ({
     y: number,
     radius: number,
     color: MarbleColor,
-    scale: number = 1.0
+    scale: number = 1.0,
+    expression?: FluffyExpression,
+    scaleX?: number,
+    scaleY?: number,
+    rotation?: number
+  ) => {
+    fluffyRenderer.drawFluffy(
+      ctx,
+      x,
+      y,
+      radius,
+      color,
+      expression ?? FluffyExpression.CUTE_IDLE,
+      (scaleX ?? 1.0) * scale,
+      (scaleY ?? 1.0) * scale,
+      rotation ?? 0
+    );
+  };
+
+  const renderFunnelBalls = (
+    ctx: CanvasRenderingContext2D,
+    balls: FunnelBall[],
+    currentTime: number
   ) => {
     ctx.save();
-    ctx.translate(x, y);
-    ctx.scale(scale, scale);
-
-    const ballImg = ballImgsRef.current[color];
-    if (ballImg && ballImg.complete && ballImg.naturalWidth > 0) {
-      // 128x128 image has sphere of radius 53px (106px diameter). 128 / 53 = 2.415
-      const size = radius * 2.42;
-      ctx.drawImage(ballImg, -size / 2, -size / 2, size, size);
-    } else {
-      const config = COLOR_CONFIG[color];
-      const grad = ctx.createRadialGradient(
-        -radius * 0.35,
-        -radius * 0.35,
-        radius * 0.1,
-        0,
-        0,
-        radius
-      );
-      grad.addColorStop(0, config.highlight);
-      grad.addColorStop(0.5, config.hex);
-      grad.addColorStop(1, config.dark);
-
-      ctx.fillStyle = grad;
-      ctx.beginPath();
-      ctx.arc(0, 0, radius, 0, Math.PI * 2);
-      ctx.fill();
-
-      ctx.strokeStyle = config.border;
-      ctx.lineWidth = 1;
-      ctx.stroke();
-
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.75)';
-      ctx.beginPath();
-      ctx.arc(-radius * 0.35, -radius * 0.35, radius * 0.28, 0, Math.PI * 2);
-      ctx.fill();
-    }
-
-    ctx.restore();
-  };
-
-  const renderFunnelBalls = (ctx: CanvasRenderingContext2D, balls: { x: number; y: number; color: MarbleColor }[]) => {
-    ctx.save();
+    const totalWaiting = balls.length;
     for (const b of balls) {
-      drawGlossyBall(ctx, b.x, b.y, BALL_RADIUS_FUNNEL, b.color);
+      const expr = fluffyRenderer.getFunnelBallExpression(b, totalWaiting, currentTime);
+
+      let scaleX = 1.0;
+      let scaleY = 1.0;
+      let rotation = 0;
+
+      if (b.impactTimer && b.impactTimer > 0) {
+        // Landing squish on funnel walls/bottom
+        const squish = Math.min(1.0, b.impactTimer / 0.28);
+        scaleX = 1.0 + squish * 0.22;
+        scaleY = 1.0 - squish * 0.18;
+      } else if (b.vy < -40) {
+        // Leaping upward stretch
+        scaleY = 1.15;
+        scaleX = 0.88;
+      } else if (Math.abs(b.vx) > 40) {
+        // Subtle tilt in movement direction
+        rotation = Math.max(-0.25, Math.min(0.25, b.vx * 0.002));
+      }
+
+      fluffyRenderer.drawFluffy(
+        ctx,
+        b.x,
+        b.y,
+        BALL_RADIUS_FUNNEL,
+        b.color,
+        expr,
+        scaleX,
+        scaleY,
+        rotation
+      );
     }
     ctx.restore();
   };
 
-  const renderBeltBalls = (ctx: CanvasRenderingContext2D, balls: BeltBall[]) => {
+  const renderBeltBalls = (ctx: CanvasRenderingContext2D, balls: BeltBall[], currentTime: number) => {
     ctx.save();
     for (const b of balls) {
       const coords = getBeltCoordinates(b.s);
-      drawGlossyBall(ctx, coords.x, coords.y, BALL_RADIUS_BELT, b.color, b.scale);
+      const expr = fluffyRenderer.getBeltBallExpression(b, currentTime);
+      fluffyRenderer.drawFluffy(ctx, coords.x, coords.y, BALL_RADIUS_BELT, b.color, expr, b.scale, b.scale);
     }
     ctx.restore();
   };
@@ -2095,7 +2161,9 @@ export const GameBoard: React.FC<GameBoardProps> = ({
       const arcHeight = -14 * Math.sin(t * Math.PI);
       const currentY = linearY + arcHeight;
 
-      drawGlossyBall(ctx, currentX, currentY, BALL_RADIUS_BELT, drop.color, 1.0);
+      const expr = fluffyRenderer.getDroppingBallExpression(drop);
+      const bounce = 1.0 + 0.15 * Math.sin(t * Math.PI);
+      fluffyRenderer.drawFluffy(ctx, currentX, currentY, BALL_RADIUS_BELT, drop.color, expr, bounce, bounce);
     }
     ctx.restore();
   };
@@ -2256,24 +2324,24 @@ export const GameBoard: React.FC<GameBoardProps> = ({
               position: 'absolute',
               left: `${GRID_X_CENTERS[2]}px`,
               top: `${GRID_Y_CENTERS[5] + ARENA_SHIFT_Y}px`,
-              width: '220px',
-              height: '212px',
+              width: '90px',
+              height: '86.7px',
               pointerEvents: 'none',
               zIndex: 100,
             }}
           >
             <div className="tutorial-ring" />
             <img
-              src="/assets/aistudio/hand_cursor_trimmed_d42d7d67.png"
+              src={handCursorImgSrc}
               alt="Tutorial Hand"
               className="tutorial-hand"
               style={{
                 display: 'block',
-                width: '220px',
-                minWidth: '220px',
+                width: '90px',
+                minWidth: '90px',
                 maxWidth: 'none',
-                height: '212px',
-                minHeight: '212px',
+                height: '86.7px',
+                minHeight: '86.7px',
                 maxHeight: 'none',
                 objectFit: 'contain',
               }}
